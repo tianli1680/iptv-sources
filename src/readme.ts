@@ -4,14 +4,6 @@ import path from 'path';
 import { handle_m3u } from './sources';
 import { get_from_info } from './utils';
 
-export interface IREADMESource {
-  name: string;
-  f_name: string;
-  count?: number | undefined;
-}
-
-export type TREADMESources = IREADMESource[];
-
 export const updateChannelList = (
   name: string,
   f_name: string,
@@ -35,66 +27,46 @@ export const updateChannelList = (
     i += 2;
   }
 
-  const channelLines = channels.map((c, idx) => {
-    return `| ${idx + 1} | ${c[0].replace('|', '')} | ${c[1]} | <${c[2]}> |`;
-  }).join('\n');
+  let channelLines = '';
+  for (let idx = 0; idx < channels.length; idx++) {
+    const c = channels[idx];
+    channelLines += `| ${idx + 1} | ${c[0].replace('|', '')} | ${c[1]} | <${c[2]}> |\n`;
+  }
 
   const after = list
-    .replace(
-      '<!-- list_title_here -->',
-      `# List for **${name}**${rollback ? '(Rollback)' : ''}\n\n> M3U: [${f_name}.m3u](/${f_name}.m3u), TXT: [${f_name}.txt](/txt/${f_name}.txt)`
-    )
+    .replace('<!-- list_title_here -->', `# List for **${name}**${rollback ? '(Rollback)' : ''}\n\n> M3U: [${f_name}.m3u](/${f_name}.m3u), TXT: [${f_name}.txt](/txt/${f_name}.txt)`)
     .replace('<!-- channels_here -->', `${channelLines}\n\nUpdated at **${new Date()}**`);
 
   const list_p = path.join(path.resolve(), 'm3u', 'list');
-
   if (!fs.existsSync(list_p)) {
     fs.mkdirSync(list_p);
   }
-
   fs.writeFileSync(path.join(list_p, `${f_name}.list.md`), after);
 };
 
 export const updateReadme = (
-  sources: TREADMESources,
-  sources_res: Array<[string, number | undefined]>,
+  sources: any[],
+  sources_res: any[],
   epgs: any[] = [],
   epgs_res: any[] = []
 ) => {
   const readme_temp_p = path.join(path.resolve(), 'README.temp.md');
   const readme = fs.readFileSync(readme_temp_p, 'utf8').toString();
 
-  // 生成频道表格 - 使用传统的 for 循环避免 map 语法问题
   let channelsTable = '';
   for (let idx = 0; idx < sources.length; idx++) {
     const  = sources[idx];
-    const count = sources_res?.[idx]?.[1];
-    const isRollback = sources_res?.[idx]?.[0] === 'rollback';
-    const countText = count === undefined ? 'update failed' : count;
-    const rollbackMark = isRollback ? '✅' : '-';
-    channelsTable += `| ${.name} | [${.f_name}.m3u](/${.f_name}.m3u) <br> [${.f_name}.txt](/txt/${.f_name}.txt) | [List for ${.name}](/list/${.f_name}.list) | ${countText} | ${rollbackMark} |\n`;
-  }
-
-  // 生成 EPG 表格
-  let epgsTable = '\n> ⚠️ EPG 功能已禁用\n';
-  if (epgs && epgs.length > 0) {
-    epgsTable = '';
-    for (let idx = 0; idx < epgs.length; idx++) {
-      const e = epgs[idx];
-      const status = epgs_res?.[idx]?.[0];
-      const statusText = status ? (status === 'rollback' ? '✅' : '-') : 'update failed';
-      epgsTable += `| ${e.name} | [${e.f_name}.xml](/epg/${e.f_name}.xml) | ${statusText} |\n`;
-    }
-    epgsTable += '| epg.pw（中国地区聚合） | [epg_pw.xml](/epg/epg_pw.xml) | 独立构建 |\n';
+    const count = sources_res[idx] ? sources_res[idx][1] : 'update failed';
+    const rollbackMark = sources_res[idx] && sources_res[idx][0] === 'rollback' ? '✅' : '-';
+    channelsTable += `| ${.name} | [${.f_name}.m3u](/${.f_name}.m3u) <br> [${.f_name}.txt](/txt/${.f_name}.txt) | [List for ${.name}](/list/${.f_name}.list) | ${count} | ${rollbackMark} |\n`;
   }
 
   const after = readme
     .replace('<!-- channels_here -->', channelsTable)
-    .replace('<!-- epgs_here -->', `${epgsTable}\n\nUpdated at **${new Date()}**`);
+    .replace('<!-- epgs_here -->', '\n> ⚠️ EPG 功能已禁用\n\nUpdated at **' + new Date().toString() + '**');
 
   if (!fs.existsSync(path.join(path.resolve(), 'm3u'))) {
     fs.mkdirSync(path.join(path.resolve(), 'm3u'));
   }
-
   fs.writeFileSync(path.join(path.resolve(), 'm3u', 'README.md'), after);
 };
