@@ -2,7 +2,8 @@ import fs from 'fs';
 import path from 'path';
 
 import { handle_m3u } from './sources';
-import type { TEPGSource } from './epgs/utils';
+// 删除 EPG 类型导入
+// import type { TEPGSource } from './epgs/utils';
 import { get_from_info } from './utils';
 
 export interface IREADMESource {
@@ -12,7 +13,8 @@ export interface IREADMESource {
 }
 
 export type TREADMESources = IREADMESource[];
-export type TREADMEEPGSources = TEPGSource[];
+// 删除 TREADMEEPGSources 类型
+// export type TREADMEEPGSources = TEPGSource[];
 
 export const updateChannelList = (
   name: string,
@@ -62,9 +64,10 @@ export const updateChannelList = (
 
 export const updateReadme = (
   sources: TREADMESources,
-  sources_res: Array<[string, number | undefined]>,
-  epgs: TREADMEEPGSources,
-  epgs_res: Array<[string | undefined]>
+  sources_res: Array<[string, number | undefined]>
+  // 删除 epgs 和 epgs_res 参数
+  // epgs: TREADMEEPGSources,
+  // epgs_res: Array<[string | undefined]>
 ) => {
   const readme_temp_p = path.join(path.resolve(), 'README.temp.md');
   const readme = fs.readFileSync(readme_temp_p, 'utf8').toString();
@@ -74,32 +77,37 @@ export const updateReadme = (
       '<!-- channels_here -->',
       `${sources
         ?.map(
-          (s, idx) =>
-            `| ${s.name} | [${s.f_name}.m3u](/${s.f_name}.m3u) <br> [${s.f_name}.txt](/txt/${
-              s.f_name
-            }.txt) | [List for ${s.name}](/list/${s.f_name}.list) | ${
+          (, idx) =>
+            `| ${.name} | [${.f_name}.m3u](/${.f_name}.m3u) <br> [${.f_name}.txt](/txt/${
+              .f_name
+            }.txt) | [List for ${.name}](/list/${.f_name}.list) | ${
               sources_res?.[idx]?.[1] === undefined ? 'update failed' : sources_res[idx][1]
             } | ${sources_res?.[idx]?.[0] === 'rollback' ? '✅' : '-'} |`
         )
         .join('\n')}`
     )
+    // 删除 EPG 表格替换
+    // .replace(
+    //   '<!-- epgs_here -->',
+    //   `${epgs
+    //     ?.map(
+    //       (e, idx) =>
+    //         `| ${e.name} | [${e.f_name}.xml](/epg/${e.f_name}.xml) | ${
+    //           epgs_res?.[idx]?.[0]
+    //             ? epgs_res?.[idx]?.[0] === 'rollback'
+    //               ? '✅'
+    //               : '-'
+    //             : 'update failed'
+    //         } |`
+    //     )
+    //     .join('\n')}
+    // | epg.pw（中国地区聚合） | [epg_pw.xml](/epg/epg_pw.xml) | 独立构建 |
+    // \n\nUpdated at **${new Date()}**`
+    // )
+    // 直接替换为只有更新时间的版本
     .replace(
       '<!-- epgs_here -->',
-      `${epgs
-        ?.map(
-          (e, idx) =>
-            `| ${e.name} | [${e.f_name}.xml](/epg/${e.f_name}.xml) | ${
-              epgs_res?.[idx]?.[0]
-                ? epgs_res?.[idx]?.[0] === 'rollback'
-                  ? '✅'
-                  : '-'
-                : 'update failed'
-            } |`
-        )
-        .join('\n')}
-| epg.pw（中国地区聚合） | [epg_pw.xml](/epg/epg_pw.xml) | 独立构建 |
-
-\n\nUpdated at **${new Date()}**`
+      `\n\n> ⚠️ EPG 功能已禁用\n\nUpdated at **${new Date()}**`
     );
 
   if (!fs.existsSync(path.join(path.resolve(), 'm3u'))) {
