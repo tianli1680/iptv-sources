@@ -2,8 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { handle_m3u } from './sources';
-// 删除 EPG 类型导入
-// import type { TEPGSource } from './epgs/utils';
+import type { TEPGSource } from './epgs/utils';
 import { get_from_info } from './utils';
 
 export interface IREADMESource {
@@ -13,8 +12,7 @@ export interface IREADMESource {
 }
 
 export type TREADMESources = IREADMESource[];
-// 删除 TREADMEEPGSources 类型
-// export type TREADMEEPGSources = TEPGSource[];
+export type TREADMEEPGSources = TEPGSource[];
 
 export const updateChannelList = (
   name: string,
@@ -64,10 +62,9 @@ export const updateChannelList = (
 
 export const updateReadme = (
   sources: TREADMESources,
-  sources_res: Array<[string, number | undefined]>
-  // 删除 epgs 和 epgs_res 参数
-  // epgs: TREADMEEPGSources,
-  // epgs_res: Array<[string | undefined]>
+  sources_res: Array<[string, number | undefined]>,
+  epgs: TREADMEEPGSources,
+  epgs_res: Array<[string | undefined]>
 ) => {
   const readme_temp_p = path.join(path.resolve(), 'README.temp.md');
   const readme = fs.readFileSync(readme_temp_p, 'utf8').toString();
@@ -86,28 +83,23 @@ export const updateReadme = (
         )
         .join('\n')}`
     )
-    // 删除 EPG 表格替换
-    // .replace(
-    //   '<!-- epgs_here -->',
-    //   `${epgs
-    //     ?.map(
-    //       (e, idx) =>
-    //         `| ${e.name} | [${e.f_name}.xml](/epg/${e.f_name}.xml) | ${
-    //           epgs_res?.[idx]?.[0]
-    //             ? epgs_res?.[idx]?.[0] === 'rollback'
-    //               ? '✅'
-    //               : '-'
-    //             : 'update failed'
-    //         } |`
-    //     )
-    //     .join('\n')}
-    // | epg.pw（中国地区聚合） | [epg_pw.xml](/epg/epg_pw.xml) | 独立构建 |
-    // \n\nUpdated at **${new Date()}**`
-    // )
-    // 直接替换为只有更新时间的版本
     .replace(
       '<!-- epgs_here -->',
-      `\n\n> ⚠️ EPG 功能已禁用\n\nUpdated at **${new Date()}**`
+      `${epgs
+        ?.map(
+          (e, idx) =>
+            `| ${e.name} | [${e.f_name}.xml](/epg/${e.f_name}.xml) | ${
+              epgs_res?.[idx]?.[0]
+                ? epgs_res?.[idx]?.[0] === 'rollback'
+                  ? '✅'
+                  : '-'
+                : 'update failed'
+            } |`
+        )
+        .join('\n')}
+| epg.pw（中国地区聚合） | [epg_pw.xml](/epg/epg_pw.xml) | 独立构建 |
+
+\n\nUpdated at **${new Date()}**`
     );
 
   if (!fs.existsSync(path.join(path.resolve(), 'm3u'))) {
