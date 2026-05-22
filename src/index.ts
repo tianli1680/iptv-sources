@@ -1,7 +1,7 @@
 import { hrtime } from 'process';
 
 import { updateChannelsJson } from './channels';
-// 删除 EPG 相关导入
+// 注释掉 EPG 导入
 // import { epgs_sources } from './epgs';
 // import { buildEpgPwXml } from './epgs/epg_pw';
 import {
@@ -9,7 +9,7 @@ import {
   getContent,
   mergeSources,
   mergeTxts,
-  // 删除 EPG 相关的文件操作函数
+  // 注释掉未使用的 EPG 函数
   // writeEpgJsonByDate,
   // writeEpgXML,
   writeM3u,
@@ -63,10 +63,9 @@ cleanFiles();
       })
     );
 
-    // 删除所有 EPG 抓取代码
-    // const epgs = await Promise.allSettled(...)
-    // const epgPwXml = await buildEpgPwXml()...
-
+    // 跳过所有 EPG 抓取
+    console.log('[INFO] EPG fetching is disabled');
+    
     console.log(`[TASK] Write important files`);
     type SourceSettled = PromiseSettledResult<(string | number)[] | (string | undefined)[]>;
     const sources_res = sourcesResult.map((r: SourceSettled) =>
@@ -76,16 +75,14 @@ cleanFiles();
     mergeTxts();
     mergeSources();
     
-    // 删除 EPG JSON 生成
+    // 跳过 EPG JSON 生成
     // await writeEpgJsonByDate();
     
     await writeTvBoxLiveJson('tvbox', sources);
     
-    // 更新频道配置（移除 EPG 参数）
-    updateChannelsJson(sources, sources_res);
-    
-    // 更新 README（移除 EPG 参数）
-    updateReadme(sources, sources_res);
+    // 传空数组给 EPG 参数，保持函数签名不变
+    updateChannelsJson(sources, sources_res, []);
+    updateReadme(sources, sources_res, [], []);
 
     console.log(`[TASK] Make custom sources`);
     runCustomTask();
