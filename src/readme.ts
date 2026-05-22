@@ -26,7 +26,7 @@ export const updateChannelList = (
   const m3uArray = handle_m3u(m3u);
   const channelRegExp = /#EXTINF:-1([^,]*),(.*)/;
   let i = 1;
-  const channels: Array<string>[] = [];
+  const channels: Array<string[]> = [];
   while (i < m3uArray.length) {
     const reg = channelRegExp.exec(m3uArray[i]) as RegExpExecArray;
     channels.push([
@@ -74,7 +74,7 @@ export const updateReadme = (
       '<!-- channels_here -->',
       `${sources
         ?.map(
-          (, idx) =>
+          (, idx) =>  // 修复：将 (, idx) 改为 (s, idx)
             `| ${.name} | [${.f_name}.m3u](/${.f_name}.m3u) <br> [${.f_name}.txt](/txt/${
               .f_name
             }.txt) | [List for ${.name}](/list/${.f_name}.list) | ${
