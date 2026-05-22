@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 
 import { handle_m3u } from './sources';
-import type { TEPGSource } from './epgs/utils';
 import { get_from_info } from './utils';
 
 export interface IREADMESource {
@@ -12,7 +11,6 @@ export interface IREADMESource {
 }
 
 export type TREADMESources = IREADMESource[];
-export type TREADMEEPGSources = TEPGSource[];
 
 export const updateChannelList = (
   name: string,
@@ -37,19 +35,16 @@ export const updateChannelList = (
     i += 2;
   }
 
+  const channelLines = channels.map((c, idx) => {
+    return `| ${idx + 1} | ${c[0].replace('|', '')} | ${c[1]} | <${c[2]}> |`;
+  }).join('\n');
+
   const after = list
     .replace(
       '<!-- list_title_here -->',
-      `# List for **${name}**${
-        rollback ? '(Rollback)' : ''
-      }\n\n> M3U: [${f_name}.m3u](/${f_name}.m3u), TXT: [${f_name}.txt](/txt/${f_name}.txt)`
+      `# List for **${name}**${rollback ? '(Rollback)' : ''}\n\n> M3U: [${f_name}.m3u](/${f_name}.m3u), TXT: [${f_name}.txt](/txt/${f_name}.txt)`
     )
-    .replace(
-      '<!-- channels_here -->',
-      `${channels
-        ?.map((c, idx) => `| ${idx + 1} | ${c[0].replace('|', '')} | ${c[1]} | <${c[2]}> |`)
-        .join('\n')}\n\nUpdated at **${new Date()}**`
-    );
+    .replace('<!-- channels_here -->', `${channelLines}\n\nUpdated at **${new Date()}**`);
 
   const list_p = path.join(path.resolve(), 'm3u', 'list');
 
@@ -63,44 +58,39 @@ export const updateChannelList = (
 export const updateReadme = (
   sources: TREADMESources,
   sources_res: Array<[string, number | undefined]>,
-  epgs: TREADMEEPGSources,
-  epgs_res: Array<[string | undefined]>
+  epgs: any[] = [],
+  epgs_res: any[] = []
 ) => {
   const readme_temp_p = path.join(path.resolve(), 'README.temp.md');
   const readme = fs.readFileSync(readme_temp_p, 'utf8').toString();
 
-  const after = readme
-    .replace(
-      '<!-- channels_here -->',
-      `${sources
-        ?.map(
-          (, idx) =>  // 修复：将 (, idx) 改为 (s, idx)
-            `| ${.name} | [${.f_name}.m3u](/${.f_name}.m3u) <br> [${.f_name}.txt](/txt/${
-              .f_name
-            }.txt) | [List for ${.name}](/list/${.f_name}.list) | ${
-              sources_res?.[idx]?.[1] === undefined ? 'update failed' : sources_res[idx][1]
-            } | ${sources_res?.[idx]?.[0] === 'rollback' ? '✅' : '-'} |`
-        )
-        .join('\n')}`
-    )
-    .replace(
-      '<!-- epgs_here -->',
-      `${epgs
-        ?.map(
-          (e, idx) =>
-            `| ${e.name} | [${e.f_name}.xml](/epg/${e.f_name}.xml) | ${
-              epgs_res?.[idx]?.[0]
-                ? epgs_res?.[idx]?.[0] === 'rollback'
-                  ? '✅'
-                  : '-'
-                : 'update failed'
-            } |`
-        )
-        .join('\n')}
-| epg.pw（中国地区聚合） | [epg_pw.xml](/epg/epg_pw.xml) | 独立构建 |
+  // 生成频道表格 - 使用传统的 for 循环避免 map 语法问题
+  let channelsTable = '';
+  for (let idx = 0; idx < sources.length; idx++) {
+    const  = sources[idx];
+    const count = sources_res?.[idx]?.[1];
+    const isRollback = sources_res?.[idx]?.[0] === 'rollback';
+    const countText = count === undefined ? 'update failed' : count;
+    const rollbackMark = isRollback ? '✅' : '-';
+    channelsTable += `| ${.name} | [${.f_name}.m3u](/${.f_name}.m3u) <br> [${.f_name}.txt](/txt/${.f_name}.txt) | [List for ${.name}](/list/${.f_name}.list) | ${countText} | ${rollbackMark} |\n`;
+  }
 
-\n\nUpdated at **${new Date()}**`
-    );
+  // 生成 EPG 表格
+  let epgsTable = '\n> ⚠️ EPG 功能已禁用\n';
+  if (epgs && epgs.length > 0) {
+    epgsTable = '';
+    for (let idx = 0; idx < epgs.length; idx++) {
+      const e = epgs[idx];
+      const status = epgs_res?.[idx]?.[0];
+      const statusText = status ? (status === 'rollback' ? '✅' : '-') : 'update failed';
+      epgsTable += `| ${e.name} | [${e.f_name}.xml](/epg/${e.f_name}.xml) | ${statusText} |\n`;
+    }
+    epgsTable += '| epg.pw（中国地区聚合） | [epg_pw.xml](/epg/epg_pw.xml) | 独立构建 |\n';
+  }
+
+  const after = readme
+    .replace('<!-- channels_here -->', channelsTable)
+    .replace('<!-- epgs_here -->', `${epgsTable}\n\nUpdated at **${new Date()}**`);
 
   if (!fs.existsSync(path.join(path.resolve(), 'm3u'))) {
     fs.mkdirSync(path.join(path.resolve(), 'm3u'));
